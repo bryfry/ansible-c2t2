@@ -1,0 +1,414 @@
+---
+ - name: bootstrap instances 
+   hosts: student-vms
+   gather_facts: False
+   #roles:
+   # - role: ansible-bootstrap
+   #   when:
+   #    - hostvars[inventory_hostname].launched == True
+   #    - hostvars[inventory_hostname].powered == True
+   #    - hostvars[inventory_hostname].configured == False 
+   #    - hostvars[inventory_hostname].destroyed == False
+
+ - name: configure student user on all new nodes
+   hosts: student-vms
+   gather_facts: True
+   #roles:
+   # - role: student-cloud-user 
+   #   when:
+   #    - hostvars[inventory_hostname].launched == True
+   #    - hostvars[inventory_hostname].powered == True
+   #    - hostvars[inventory_hostname].configured == False 
+   #    - hostvars[inventory_hostname].destroyed == False
+   # - role: ansible-beachhead
+   #   when:
+   #    - vm_name == "bchd"
+   #    - hostvars[inventory_hostname].launched == True
+   #    - hostvars[inventory_hostname].powered == True
+   #    - hostvars[inventory_hostname].configured == False 
+   #    - hostvars[inventory_hostname].destroyed == False
+   # - role: ansible-gotty
+   #   when:
+   #    - vm_name == "bchd"
+   #    - hostvars[inventory_hostname].launched == True
+   #    - hostvars[inventory_hostname].powered == True
+   #    - hostvars[inventory_hostname].configured == False 
+   #    - hostvars[inventory_hostname].destroyed == False
+
+ - name: configure c2t2
+   hosts: student-vms
+   gather_facts: True
+
+   tasks:
+   - name: configure bchd
+     block: 
+      - name: add axel user with bad password
+        user: 
+          name: "axel"
+          shell: /bin/nope
+          password: "$5$tF9cDLhOm8BS$eV46iTL1D9TZs4Hqu4qvjNNNMO/P9/tNzUMP9BzJsD1"
+        become: yes
+    
+      - name: make student user directory owned by student
+        file:
+          path: /home/axel/
+          state: directory
+          owner: "axel"
+          group: "axel"
+        become: yes
+ 
+      - name: deploy nope command with custom message
+        template: 
+          src: templates/nope.j2
+          dest: /bin/nope
+          mode: 0755
+        vars: 
+          nope_msg: "We appreciate your persitence, but this account is locked on this system.  Your next quest is deeper. COG{17599eef-f2e6-4509-a2f2-c08d342134c7}"
+        become: True
+        
+      - name: deploy files
+        copy:
+          src: "{{ item.src }}"
+          dest: "{{ item.dest }}"
+          owner: "{{ item.owner }}"
+          group: "{{ item.group }}"
+        loop:
+         - src: files/heimskringla.txt
+           dest: /home/student/heimskringla.txt
+           owner: student
+           group: student
+        become: True
+
+      - name: cron for outbound conneciton to crust
+        vars: 
+          student_number: "{{ ansible_facts['hostname'].split('-')[1] }}"
+        cron:
+          name: no cheating, well i guess technically you aren't.  Go find the connection in the socket statistics though!
+          user: root
+          minute: "*"
+          job: "ssh student@c2t2-{{ student_number }}-crust -oStrictHostKeyChecking=no -p 1863 -i /home/student/.ssh/id_rsa"
+        become: True
+
+     when:
+      - vm_name == "bchd"
+      - hostvars[inventory_hostname].launched == True
+      - hostvars[inventory_hostname].powered == True
+      - hostvars[inventory_hostname].configured == False 
+      - hostvars[inventory_hostname].destroyed == False
+
+   - name: configure crust
+     block: 
+      - name: add axel user with bad password
+        user: 
+          name: "axel"
+          shell: /bin/bash
+          password: "$5$tF9cDLhOm8BS$eV46iTL1D9TZs4Hqu4qvjNNNMO/P9/tNzUMP9BzJsD1"
+          groups: sudo
+        become: yes
+
+      - name: disable student user on crust
+        user: 
+          name: "student"
+          shell: /bin/nope
+        become: yes
+    
+      - name: make student user directory owned by student
+        file:
+          path: /home/axel/
+          state: directory
+          owner: "axel"
+          group: "axel"
+        become: yes
+ 
+      - name: deploy nope command with custom message
+        template: 
+          src: templates/nope.j2
+          dest: /bin/nope
+          mode: 0755
+        vars: 
+          nope_msg: "NOPE!"
+        become: True
+
+      - name: change ssh password auth
+        lineinfile:
+          dest: /etc/ssh/sshd_config
+          regexp: "^PasswordAuthentication no"
+          line: "PasswordAuthentication yes"
+        become: True
+
+      - name: deploy files
+        copy:
+          src: "{{ item.src }}"
+          dest: "{{ item.dest }}"
+          owner: "{{ item.owner }}"
+          group: "{{ item.group }}"
+        loop:
+         - src: files/axel-crust-flag.txt
+           dest: /home/axel/heimskringla.txt
+           owner: axel
+           group: axel
+         - src: files/lindenbrock@mantle
+           dest: /usr/lib/x86_64-linux-gnu/coreutils/libstdkey.so
+           owner: root
+           group: root
+         - src: files/rsyslog.conf
+           dest: /etc/rsyslog.conf
+           owner: root
+           group: root
+        become: True
+  
+      - name: set ssh port 1863
+        lineinfile:
+          dest: /etc/ssh/sshd_config
+          regexp: "^#Port 22"
+          line: "Port 1863"
+        become: True
+      - name: set ssh port 1863
+        lineinfile:
+          dest: /etc/ssh/sshd_config
+          regexp: "^Port 1862"
+          line: "Port 1863"
+        become: True
+     
+      - name: restart sshd 
+        systemd: 
+          name: sshd
+          state: restarted
+        become: True
+
+      - name: rsyslog server
+        apt: 
+          name: rsyslog
+          state: installed
+        become: True
+
+      - name: rsyslog restarted
+        systemd: 
+          name: rsyslog
+          state: restarted
+        become: True
+
+     when:
+      - vm_name == "crust"
+      - hostvars[inventory_hostname].launched == True
+      - hostvars[inventory_hostname].powered == True
+      - hostvars[inventory_hostname].configured == False 
+      - hostvars[inventory_hostname].destroyed == False
+
+   - name: configure mantle
+     block: 
+      - name: add lindenbrock user 
+        user: 
+          name: "lindenbrock"
+          shell: /bin/nope1
+        become: yes
+
+      - name: disable student user on crust
+        user: 
+          name: "student"
+          shell: /bin/nope2
+        become: yes
+    
+      - name: make student user directory owned by student
+        file:
+          path: /home/lindenbrock/
+          state: directory
+          owner: "lindenbrock"
+          group: "lindenbrock"
+        become: yes
+ 
+      - name: deploy nope command with custom message
+        template: 
+          src: templates/nope.j2
+          dest: "{{ item.nope }}"
+          mode: 0755
+        vars: 
+          nope_msg: "{{ item.msg }}"
+        loop:
+         - nope: /bin/nope2 
+           msg: "NOPE!"
+         - nope: /bin/nope1
+           msg: "This machine behaves like a ghost, Lindenbrock uses it as a bastion host! COG{17515afd-0444-4779-891a-e70607e2b3de}"
+        become: True
+        
+      - name: place lindenbrock's authorized key
+        authorized_key:
+          user: "lindenbrock"
+          state: present
+          key: "{{ lookup ('file', 'files/lindenbrock@mantle.pub') }}"
+        become: True
+
+      - name: deploy rsyslog client config
+        vars: 
+          student_number: "{{ ansible_facts['hostname'].split('-')[1] }}"
+        template: 
+          src: templates/client-rsyslog.conf.j2
+          dest: /etc/rsyslog.conf
+          mode: 0755
+        become: True
+
+      #- name: deploy files
+      #  copy:
+      #    src: "{{ item.src }}"
+      #    dest: "{{ item.dest }}"
+      #    owner: "{{ item.owner }}"
+      #    group: "{{ item.group }}"
+      #  loop:
+      #  become: True
+
+      - name: rsyslog server
+        apt: 
+          name: rsyslog
+          state: installed
+        become: True
+
+      - name: rsyslog restarted
+        systemd: 
+          name: rsyslog
+          state: restarted
+        become: True
+
+      - name: cron for shouting the flag and keys into syslog (and remote)
+        vars: 
+          student_number: "{{ ansible_facts['hostname'].split('-')[1] }}"
+        cron:
+          name: "{{ item.name }}"
+          user: "{{ item.user | default('root') }}"
+          state: "{{ item.state | default('present') }}"
+          minute: "{{ item.minute }}"
+          job: "{{ item.job }}"
+        loop:
+         - name: nc out to mantle
+           state: absent
+           minute: "*"
+           job: ""
+           user: lindenbrock
+         - name: logging
+           state: absent
+           minute: "*"
+           job: ""
+         - name: flag logging
+           minute: "*/5"
+           job: "logger $(date -Im) SHOUTING THE FLAG INTO THE VOID! COG{1754b4be-80ce-4bba-ae5d-56c6cabde758}"
+         - name: network logging
+           minute: "*"
+           job: "ss -antp | logger"
+         - name: cat sshd config
+           minute: "*/10"
+           job: "cat /etc/ssh/sshd_config | logger"
+        become: True
+
+      - name: change ssh enable gateway ports
+        lineinfile:
+          dest: /etc/ssh/sshd_config
+          line: "GatewayPorts yes"
+        become: True
+
+      - name: restart sshd 
+        systemd: 
+          name: sshd
+          state: restarted
+        become: True
+
+      - name: log inbound connections
+        iptables:
+          chain: INPUT
+          protocol: tcp
+          match: tcp
+          ctstate: NEW
+          state: present
+          jump: LOG
+          log_prefix: "New Connection"
+        become: True
+
+     when:
+      - vm_name == "mantle"
+      - hostvars[inventory_hostname].launched == True
+      - hostvars[inventory_hostname].powered == True
+      - hostvars[inventory_hostname].configured == False 
+      - hostvars[inventory_hostname].destroyed == False
+
+   - name: configure core
+     block: 
+      - name: add lindenbrock user 
+        user: 
+          name: "lindenbrock"
+          shell: /bin/bash
+        become: yes
+
+      - name: disable student user on crust
+        user: 
+          name: "student"
+          shell: /bin/nope2
+        become: yes
+    
+      - name: make lindenbrock user directory self owned
+        file:
+          path: /home/lindenbrock/
+          state: directory
+          owner: "lindenbrock"
+          group: "lindenbrock"
+        become: yes
+ 
+      - name: deploy nope command with custom message
+        template: 
+          src: templates/nope.j2
+          dest: "{{ item.nope }}"
+          mode: 0755
+        vars: 
+          nope_msg: "{{ item.msg }}"
+        loop:
+         - nope: /bin/nope2 
+           msg: "NOPE!"
+        become: True
+        
+      - name: place lindenbrock's authorized key
+        vars: 
+          student_number: "{{ ansible_facts['hostname'].split('-')[1] }}"
+        authorized_key:
+          user: "lindenbrock"
+          state: present
+          key: "from=\"{{ lookup('dig', 'c2t2-'+student_number+'-mantle' ) }}\",command=\"ssh 10.16.2.9 -oStrictHostKeyChecking=no -p 22175\" {{ lookup ('file', 'files/lindenbrock@core.pub') }}"
+        become: True
+
+      - name: deploy files
+        copy:
+          src: "{{ item.src }}"
+          dest: "{{ item.dest }}"
+          owner: "{{ item.owner }}"
+          group: "{{ item.group }}"
+        loop:
+         - src: files/lindenbrock@core
+           dest: /home/lindenbrock/ssh_key
+           owner: lindenbrock
+           group: lindenbrock
+        become: True
+
+      - name: cron for shouting the flag and keys into a nc command
+        vars: 
+          student_number: "{{ ansible_facts['hostname'].split('-')[1] }}"
+        cron:
+          name: nc out to mantle
+          user: lindenbrock
+          minute: "*"
+          job: "cat /home/lindenbrock/ssh_key | nc c2t2-{{ student_number }}-mantle 1337"
+        become: True
+      
+      - name: set ssh port to 22175 
+        lineinfile:
+          dest: /etc/ssh/sshd_config
+          regexp: "^#Port 22"
+          line: "Port 22175"
+        become: True 
+      - name: restart sshd 
+        systemd: 
+          name: sshd
+          state: restarted
+        become: True
+
+     when:
+      - vm_name == "core"
+      - hostvars[inventory_hostname].launched == True
+      - hostvars[inventory_hostname].powered == True
+      - hostvars[inventory_hostname].configured == False 
+      - hostvars[inventory_hostname].destroyed == False

@@ -1,0 +1,17 @@
+
+Thank you: 
+ - X8 - Hosting us
+ - Matt Evans - AWS server (CTFd hosting)
+ - Jaremy Barrett - CTFd setup
+ - Alta3 Research - Student environments hosting (40 vms)
+
+Hostnames:
+ c2t2-000-hostname
+   c2t2: this course
+   000: your student number
+   hostname: the host name of the machine your on or talking to
+
+Hints:
+  Use them!
+  1pt = hint
+  5pt = solution (plese try for at least 15m before using solution)

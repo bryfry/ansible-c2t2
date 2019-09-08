@@ -1,0 +1,27 @@
+COG{17507e07-2f39-4b36-8843-bf304ee3ad1d} DISCOVERY> In a large tome this flag tightly bound. But it isn't worth much because it's easily found
+                                          - grep in book for COG{}
+COG{17599eef-f2e6-4509-a2f2-c08d342134c7} ACCESS> You have the who, but not the where, that's worth somthing right? 
+                                          - axel login on bchd - /bin/nope output
+COG{175ae80e-051e-467f-8b0d-ee224af54574} ACCESS> Use your found creds and the discovered location to access T1
+                                          - flag file in axel's home directory on crust
+COG{1750b2c3-a053-4c68-9da8-26e4a6ade0d7} DISCOVERY> Find the ssh key hidden on T1, Professor thought it was punny to hide his key in a "shared" file
+                                          - flag in comment section of key
+COG{17515afd-0444-4779-891a-e70607e2b3de} ACCESS> Prof is like a ghost but whoever finds him needent boast
+                                          - ssh to lindenbrock@mantle
+COG{1754b4be-80ce-4bba-ae5d-56c6cabde758} DISCOVERY> host enumeration is hard, good thing we dont have to clean these logs
+                                          - shouting the flag into the void -- viewable from rsyslog on crust
+COG{1758a9e1-22ae-4d41-8916-ccc98ec0edbf} - FEEDBACK FLAG Hidden
+COG{17576080-45d6-4b9f-9084-533ca9710548} DISCOVERY> Catch callback beaconing from core
+                                          - Reverse port forward from mantle to crust -- inside ssh key comment
+COG{175be632-d86a-46b2-93b9-a60e565fb4db} - echo'd after game connection
+COG{175af870-5796-4a70-a199-e02865031d41} 
+COG{17560db4-68ef-4bf0-a09c-872de9ac6b2c} 
+COG{175493ea-577a-4321-99a7-1ae2490c06cc} 
+COG{17516dd4-1252-4c58-9ea8-79e8f0dfbcda} 
+COG{17510346-ea79-436e-84b5-97d9468cd977} 
+COG{1753b5d3-a47f-4dfd-9ff8-089e55d79f35} 
+COG{17560e77-2079-422b-ad15-a966e3f89f38} 
+COG{1756984e-f705-44bd-b02f-c1307c407069} 
+COG{17508e4a-d5dd-4586-912b-2e467728eca0} 
+COG{175f8bb0-f5e4-404f-adef-263e73ffe4c3} 
+COG{1753a9bc-3111-4abd-aa03-f5c3f1f8d01a} 

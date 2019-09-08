@@ -1,0 +1,106 @@
+
+Discovery 101
+COG{17507e07-2f39-4b36-8843-bf304ee3ad1d} 
+10pts
+In a large tome this flag is tightly bound. It isn't worth much because it's easily found. COG{}
+Hint (1pt): soluton `grep COG *.txt`
+
+Access 101
+COG{17599eef-f2e6-4509-a2f2-c08d342134c7} 
+100pts 
+A single user system this is not. Can you crack the code and untie the knot?
+Hint (1pt): hint: `sudo cat /etc/passwd` 
+Hint (1pt): hint: `sudo cat /etc/shadow` 
+Hint (1pt): hint: axel is your mark and john is your friend
+Hint (1pt): hint: There sure are a lot of WORDS in this book.  Make sure to not PASS your eyes over all of them
+Hint (1pt): hint: Make a wordlist from heimskringla.txt, wouldnt that be cewl?
+Hint (1pt): hint: Make sure to avoid the strong hash used for the 'student' user (65600 cycles is not fast)
+Hint (5pt): solution: 
+```
+  sudo apt install cewl john
+  python -m SimpleHTTPServer &
+  cewl localhost:8000/heimskringla.txt -w words
+  sudo cat /etc/shadow | grep axel > axel-hash.txt
+  sudo john --wordlist=words axel-hash.txt
+  su axel # password from john
+```
+
+Access 102
+COG{175ae80e-051e-467f-8b0d-ee224af54574} 
+100pts
+Wax on, Wax off.  SSH in, logout.  Like sands through an hourglass these sessions come and go as fast as they were created.
+Hint (1pt): hint: Watch for sessions coming or going from this machine
+Hint (1pt): hint: Network (or socket) statistics or packet dumping are both great ways to find connections of interest
+Hint (1pt): hint: 
+```
+  watch -n1 -d ss -antp
+```
+or
+```
+  sudo tcpdump -ni ens3 not port 2222 and ip
+```
+Hint (5pt): solution: `ssh to axel@c2t2-000-crust -p 1863`
+
+
+Discovery 201
+Preq: Access 102
+COG{1750b2c3-a053-4c68-9da8-26e4a6ade0d7} 
+100pts
+Find the ssh private key hidden on crust.  The professor thought it was punny to hide his key in a "shared" file
+Hint (1pt): hint: A shared library or shared object is a file that is intended to be shared by executable files and further shared object files.
+Hint (1pt): hint: You will need to `find` the file somewhere on the filesystem.  `proc` and `sys` can be ignored.
+Hint (1pt): hint: Filter out all the .so files which have the `file` types that is expected
+Hint (1pt): hint: When you you find the key the flag will be inside the key (`man ssh-keygen`)
+Hint (5pt): solution: this is an example solution, there are lots of possibilites: 
+
+`find / -type f  2>/dev/null | grep ".so$" | xargs -I {} -P0 file {} | egrep -v "ELF|ASCII|python|terminfo"`
+`ssh-keygen -l -f <FILE>`
+
+Access 201
+Preq: Access 102
+COG{17515afd-0444-4779-891a-e70607e2b3de} 
+Prof is like a ghost, but whoever finds him needent boast.  Just ssh to his favorite host!
+Hint (1pt): hint: you may need to update the hostname that you find in the key (`c2t2-000-<hostname>`)
+Hint (5pt): solution: ssh lindenbrock@c2t2-000-mantle -i <FILE FOUND IN Discovery 201>
+
+Discovery 202
+Preq: Access 102
+COG{1754b4be-80ce-4bba-ae5d-56c6cabde758} 
+Host enumeration is hard, good thing we dont have to clean these logs.
+Hint (1pt): hint: Evaluating the logs on a system is critical in understanding what system is being used for
+Hint (1pt): hint: Read and understand the `rsyslog` configuration file
+Hint (1pt): hint: Look for any logs which might be arriving from a remote hosts
+Hint (5pt): solution: `sudo grep COG /var/log/c2t2-*`
+
+Tunnels 301
+Preq: Access 201
+COG{17576080-45d6-4b9f-9084-533ca9710548}
+Looks like the Prof has `mantle` locked down tight, maybe that remote log could shed some light.
+hint: Looks like something is knocking, knocking on this bastion door
+hint: Maybe it's a message, coming from the core
+hint: Just because you can't get a login shell on this box doesn't mean ssh ins't useful!  What else can we do with ssh?
+hint: What is different about the sshd config which is coming back from mantle?
+hint: `man ssh` is your friend. I like the `-N` and the `-T` flags the most. Also something something `GatewayPorts`
+hint: Use the netstat output, which is also getting logged, to troubleshoot a port forward, what direction should a port forward go?
+hint: Reverse ssh port forwarding: `-R <remote listening interface IP>:<remote listening port>:<local interface IP>:<local port>`
+hint: `-R 0.0.0.0:1337:localhost:1337 -v`
+hint: Don't forget to setup something to listen for the inbound connection, `netcat` is always fun.
+hint: on crust (separate window): `nc -l -p 1337`
+solution: `ssh lindenbrock@c2t2-001-mantle -i /usr/lib/x86_64-linux-gnu/coreutils/libstdkey.so -NT -R 0.0.0.0:1337:localhost:1337 -v`
+
+
+Tunnels 302
+Preq: Tunnels 301
+COG{175be632-d86a-46b2-93b9-a60e565fb4db}
+After all this journey I hope the the payoff is worth the effort. On the other side of this tunnel it all looked so easy.
+Step inside the computer world...
+hint: make sure to use the correct hostname and port to get to core -- via mantle
+hint: Port forwarding works in the forward direction too, just not with the letter `F` -- it's `L` because the listening happens locally (not Remote listen like with Reverse forwarding, `R`))
+hint: Forward ssh port forwarding: `-L <local listen ip>:<local listen port>:<remote target ip>:<remote target port>`
+hint: `-L 22175:c2t2-000-core:22175 -v`
+solution: 
+`ssh lindenbrock@c2t2-001-mantle -i /usr/lib/x86_64-linux-gnu/coreutils/libstdkey.so -NT -L 22175:c2t2-001-core:22175 -v`
+`ssh localhost -p 22175`
+(flag shown after you die)
+
+COG{1758a9e1-22ae-4d41-8916-ccc98ec0edbf} - FEEDBACK FLAG Hidden and only given after the survey has been taken
